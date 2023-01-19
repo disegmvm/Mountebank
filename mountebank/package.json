@@ -1,0 +1,12 @@
+{
+  "name": "test",
+  "description": "test service using mocha and supertest.",
+  "version": "0.0.1",
+  "license": "UNLICENSED",
+  "scripts": {
+    "mock": "mb --configfile imposters.ejs --loglevel debug"
+  },
+  "dependencies": {
+    "mountebank": "^1.14.0"
+  }
+}
