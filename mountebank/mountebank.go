@@ -17,16 +17,16 @@ import (
 
 const (
 	AllPaths = "all-paths"
-	Port     = 8080
+	Port     = 8181
 )
 
 type Mountebank struct {
 	client *mbgo.Client
 }
 
-func NewMountebank(env string) (*Mountebank, error) {
+func NewMountebank() (*Mountebank, error) {
 	httpClient := &http.Client{}
-	mbURL, err := url.Parse(fmt.Sprintf("http://mountebank.%s.warehouse.ri-tech.io:2525/", env))
+	mbURL, err := url.Parse("http://localhost:2525/")
 	if err != nil {
 		return &Mountebank{}, err
 	}
