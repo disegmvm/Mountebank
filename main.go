@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"go/helpers"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -21,37 +23,20 @@ var cars = []car{
 	{ID: "2", Title: "Tesla", Color: "Red"},
 }
 
+type Post struct {
+	Userid string `json:"userId"`
+	ID     int    `json:"id"`
+	Title  string `json:"title"`
+	Body   string `json:"body"`
+}
+
 func main() {
 	router := gin.Default()
 	router.GET("/cars", getCars)
 	router.GET("/cars/:id", getCarByID)
-	router.POST("/cars", post2)
+	router.POST("/cars", post3)
 
 	router.Run("localhost:8080")
-}
-
-func postCars(c *gin.Context) {
-	var newCar car
-	if err := c.BindJSON(&newCar); err != nil {
-		return
-	}
-	cars = append(cars, newCar)
-	jsonchik := helpers.ToJSON(newCar)
-
-	baseUrl := "api-url.com"
-	path := "/v1"
-	aHttpHelper := helpers.NewHttpHelper(baseUrl)
-
-	_, _ = aHttpHelper.Send(
-		aHttpHelper.POST(path).
-			WithContentTypeHeaderJSON().
-			WithBody(strings.NewReader(jsonchik)))
-	//Expect(httpErr).NotTo(HaveOccurred())
-	//Expect(resp.StatusCode).To(Equal(http.StatusCreated))
-
-	mes := fmt.Sprintf("POST is made to %s%s", baseUrl, path)
-
-	c.IndentedJSON(http.StatusCreated, gin.H{"message": mes})
 }
 
 // postAlbums adds an album from JSON received in the request body.
@@ -62,7 +47,6 @@ func post2(c *gin.Context) {
 	}
 	cars = append(cars, newCar)
 	jsonchik := helpers.ToJSON(newCar)
-
 	resp, err := http.Post("http://localhost:4545/test", "application/json", strings.NewReader(jsonchik))
 
 	if err != nil {
@@ -71,6 +55,39 @@ func post2(c *gin.Context) {
 	}
 
 	log.Printf("SENT SUCCESSFULLY!!!!!!!: %s", resp.StatusCode)
+}
+
+func post3(c *gin.Context) {
+	var newCar car
+	if err := c.BindJSON(&newCar); err != nil {
+		return
+	}
+	cars = append(cars, newCar)
+	body, _ := json.Marshal(newCar)
+
+	// Create a HTTP post request
+	r, err := http.NewRequest("POST", "http://localhost:4545/test", bytes.NewBuffer(body))
+	if err != nil {
+		panic(err)
+	}
+
+	r.Header.Add("Content-Type", "application/json")
+	r.Header.Add("Testing-Id", "777")
+
+	client := &http.Client{}
+	res, err := client.Do(r)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Printf("SENT SUCCESSFULLY!!!!!!!: %s", res.StatusCode)
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(res.Body)
 }
 
 // getCars responds with the list of all albums as JSON.

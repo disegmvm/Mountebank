@@ -10,7 +10,7 @@
     "responses": [
       {
         "is": {
-          "statusCode": 200
+          "statusCode": 201
         },
         "body": {}
       }

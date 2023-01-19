@@ -1,2 +1,3 @@
-#Log's output
+#Mauntebank's output
 *.log
+*.pid
