@@ -3,23 +3,24 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 // car represents data about each car's record.
-type car struct {
-	Year  string
-	Title string
-	Color string
+type payload struct {
+	Key1 string `json:"Key1"`
+	Key2 string `json:"Key2"`
+	Key3 string `json:"Key3"`
 }
 
-var mountebankUrl = "http://localhost:8181/test/cars"
+var mountebankUrl = "http://localhost:8181/transform"
 
 func main() {
 	router := gin.Default()
-	router.POST("/cars", processCar)
+	router.POST("/transform", processCar)
 
 	err := router.Run("localhost:8080")
 	if err != nil {
@@ -30,25 +31,28 @@ func main() {
 
 // processCar updates received car's title and sends it to Mountebank
 func processCar(receivedRequest *gin.Context) {
-	var receivedCar car
-	if err := receivedRequest.BindJSON(&receivedCar); err != nil {
+
+	var receivedPayload payload                                        // Declaring a new Car variable.
+	if err := receivedRequest.BindJSON(&receivedPayload); err != nil { // Bind the request body to newCar variable.
+		receivedRequest.IndentedJSON(http.StatusBadRequest, // Return 400 Status Code,
+			gin.H{"message": "Failed to create a car"}) // and error message if binding has failed.
 		return
 	}
-	//Updating the Title
-	receivedCar.Title = "Brand new title"
-	newCarJson, _ := json.Marshal(receivedCar)
-	log.Printf("XXXX new car:")
-	log.Printf(string(newCarJson))
+	//Transforming the payload
+	receivedPayload.Key1 = "transformed key1 value"
+	receivedPayload.Key2 = "transformed key2 value"
+	receivedPayload.Key3 = "transformed key3 value"
 
-	//Creating HTTP POST request
-	request, err := http.NewRequest("POST", mountebankUrl, bytes.NewBuffer(newCarJson))
+	receivedRequest.IndentedJSON(http.StatusCreated, receivedPayload)
+	transformedPayload, _ := json.Marshal(receivedPayload)
+
+	request, err := http.NewRequest("POST", mountebankUrl, bytes.NewBuffer(transformedPayload))
 	if err != nil {
 		log.Printf("Request creation failed: %s", err)
 		return
 	}
 	request.Header.Add("Testing-Id", receivedRequest.GetHeader("Testing-Id"))
 
-	log.Print("OOOOOOOOOOOOOOtpravluyau B MBANK")
 	//Sending request to Mountebank
 	httpClient := &http.Client{}
 	_, err = httpClient.Do(request)
@@ -56,7 +60,4 @@ func processCar(receivedRequest *gin.Context) {
 		log.Printf("Failed to send request: %s", err)
 		return
 	}
-
-	log.Printf("otpravil, bb, staraya tachka:")
-	receivedRequest.IndentedJSON(http.StatusCreated, receivedCar)
 }

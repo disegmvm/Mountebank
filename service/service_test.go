@@ -2,44 +2,46 @@ package main
 
 import (
 	"context"
-	"github.com/senseyeio/mbgo"
 	"go/mountebank"
 	"go/mountebank/stubs"
 	"log"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/senseyeio/mbgo"
 )
 
-var ctx context.Context
+//var ctx context.Context
 
 func Test_ServiceTest(t *testing.T) {
-	ctx = context.Background()
+	ctx := context.Background()
+	client := &http.Client{}
 
 	mbank, err := mountebank.NewMountebank()
 	if err != nil {
 		t.Fatalf("Error on creating mountebank: %v", err)
 	}
-
 	err = mbank.CreateImposters(ctx, []mbgo.Imposter{mountebank.Imposter})
 	if err != nil {
 		panic("create imposter error")
 	}
-
 	err = mbank.AddStub(ctx, mountebank.Imposter.Port, stubs.CarsStub)
 	if err != nil {
 		panic("add stub error")
 	}
-	//log.Printf("всё, я спать нахуй.... (2 секунды)")
-	//time.Sleep(time.Second * time.Duration(2))
 
-	testingID := "1172"
-	newCar := "{\"Year\": \"1998\", \"Title\": \"GM\", \"Color\": \"PINK\"}"
+	/*p := payload{key1: "asd",
+		key2: "dsa",
+		key3: "KEY Z"}
+	pp, _ := json.Marshal(p)*/
 
-	log.Printf("JSON, that will be sent to local service:\n%s", newCar)
+	payload1 := "{\"key1\": \"initial value 1\", \"key2\": \"initial value 2\", \"key3\": \"initial value 3\"}"
+	testingID := "16662"
 
-	log.Printf("готовлю к отправке её в http://localhost:8080/cars")
-	request, err := http.NewRequest("POST", "http://localhost:8080/cars", strings.NewReader(newCar))
+	//log.Printf("JSON, that will be sent to local service:\n%s", pp)
+
+	request, err := http.NewRequest("POST", "http://localhost:8080/transform", strings.NewReader(payload1))
 	if err != nil {
 		log.Printf("Request creation failed: %s", err)
 		return
@@ -48,22 +50,21 @@ func Test_ServiceTest(t *testing.T) {
 	request.Header.Add("Testing-Id", testingID)
 
 	log.Printf("SENDING......")
-	client := &http.Client{}
-	res, err := client.Do(request)
+	_, err = client.Do(request)
 	if err != nil {
 		log.Printf("Failed to send request: %s", err)
 		return
 	}
-	log.Print(res)
-	//log.Printf("Status code: %d", res)
+	log.Print("Sent")
 
-	log.Printf("ща буду лупаться") //------------------------------------FIX FROM HERE-----------------------------------
-	for _, request := range mountebank.Imposter.Requests {
-		log.Printf("зашел в Requests...")
-		if request.(*mbgo.HTTPRequest).Headers.Get("Testing-Id") == testingID {
-			log.Printf("Payload received by Mountebank using TestingID %s:\n%s", testingID, request.(*mbgo.HTTPRequest).Body)
-		} else {
-			log.Printf("нихуя не нашел")
+	var requestFromMBank string
+	reqs, _ := mbank.GetRecordedRequestsByPath(ctx, 8181, "all-paths")
+	for _, req := range reqs {
+		if req.Headers.Get("Testing-Id") == "16662" {
+			requestFromMBank = req.Body.(string)
 		}
 	}
+
+	log.Print("Request from Mountebank:")
+	log.Print(requestFromMBank)
 }
