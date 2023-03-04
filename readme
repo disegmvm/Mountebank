@@ -1,4 +1,7 @@
-run mb into /api-server/MountebankApi ili .../mountebank?
-run go run main.go into /api-server/MountebankApi/service
-run go run test.go api-server/MountebankApi/service
+install Mountebank:
+npm install -g mountebank
+
+run mb from /api-server/MountebankApi/mountebank
+run go run main.go from /api-server/MountebankApi/service
+run go run test.go from api-server/MountebankApi/service
 CHECK HERE: http://localhost:2525/imposters/8181

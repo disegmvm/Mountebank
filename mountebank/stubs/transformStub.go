@@ -4,7 +4,7 @@ import (
 	"github.com/senseyeio/mbgo"
 )
 
-var CarsStub = mbgo.Stub{
+var TransformStub = mbgo.Stub{
 	Predicates: []mbgo.Predicate{
 		{
 			Operator: "equals",

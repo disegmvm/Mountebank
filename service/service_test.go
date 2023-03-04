@@ -1,70 +1,48 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"go/mountebank"
 	"go/mountebank/stubs"
 	"log"
 	"net/http"
-	"strings"
 	"testing"
-
-	"github.com/senseyeio/mbgo"
 )
 
-//var ctx context.Context
+var (
+	ctx       = context.Background()
+	testingID = "12345"
+)
 
-func Test_ServiceTest(t *testing.T) {
-	ctx := context.Background()
-	client := &http.Client{}
+func TestTransform(t *testing.T) {
 
-	mbank, err := mountebank.NewMountebank()
-	if err != nil {
-		t.Fatalf("Error on creating mountebank: %v", err)
-	}
-	err = mbank.CreateImposters(ctx, []mbgo.Imposter{mountebank.Imposter})
-	if err != nil {
-		panic("create imposter error")
-	}
-	err = mbank.AddStub(ctx, mountebank.Imposter.Port, stubs.CarsStub)
-	if err != nil {
-		panic("add stub error")
-	}
+	// Initializing Mountebank's components
+	mbank, _ := mountebank.NewMountebank()
+	_ = mbank.CreateImposter(ctx, mountebank.Imposter)
+	_ = mbank.AddStub(ctx, mountebank.Imposter.Port, stubs.TransformStub)
 
-	/*p := payload{key1: "asd",
-		key2: "dsa",
-		key3: "KEY Z"}
-	pp, _ := json.Marshal(p)*/
+	// Creating a testing data
+	payload1 := "{\"Key1\": \"initial value 1\", \"Key2\": \"initial value 2\"}"
+	log.Print("Payload sent to local service:")
+	log.Print(payload1)
 
-	payload1 := "{\"key1\": \"initial value 1\", \"key2\": \"initial value 2\", \"key3\": \"initial value 3\"}"
-	testingID := "16662"
-
-	//log.Printf("JSON, that will be sent to local service:\n%s", pp)
-
-	request, err := http.NewRequest("POST", "http://localhost:8080/transform", strings.NewReader(payload1))
-	if err != nil {
-		log.Printf("Request creation failed: %s", err)
-		return
-	}
-	request.Header.Add("Content-Type", "application/json")
+	// Preparing a request to send it to 'transform' service
+	request, _ := http.NewRequest("POST", "http://localhost:8080/transform", bytes.NewBuffer([]byte(payload1)))
 	request.Header.Add("Testing-Id", testingID)
 
-	log.Printf("SENDING......")
-	_, err = client.Do(request)
-	if err != nil {
-		log.Printf("Failed to send request: %s", err)
-		return
-	}
-	log.Print("Sent")
+	// Sending prepared request
+	httpClient := &http.Client{}
+	httpClient.Do(request)
 
-	var requestFromMBank string
-	reqs, _ := mbank.GetRecordedRequestsByPath(ctx, 8181, "all-paths")
+	// Retrieving all requests present in Mountebank
+	reqs, _ := mbank.GetRequestsFromMountebank(ctx, 8181)
+
+	// Looping through Mountebank requests to find the one with knows Testing ID
 	for _, req := range reqs {
-		if req.Headers.Get("Testing-Id") == "16662" {
-			requestFromMBank = req.Body.(string)
+		if req.Headers.Get("Testing-Id") == testingID {
+			log.Print("Request from Mountebank:")
+			log.Print(req.Body.(string))
 		}
 	}
-
-	log.Print("Request from Mountebank:")
-	log.Print(requestFromMBank)
 }

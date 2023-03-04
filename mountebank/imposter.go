@@ -3,7 +3,7 @@ package mountebank
 import "github.com/senseyeio/mbgo"
 
 var Imposter = mbgo.Imposter{
-	Port:           Port,
+	Port:           8181,
 	Proto:          "http",
 	Name:           "imposter",
 	RecordRequests: true,

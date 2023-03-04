@@ -3,61 +3,45 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-// car represents data about each car's record.
+// 'payload' represents data accepted by transform function
 type payload struct {
 	Key1 string `json:"Key1"`
 	Key2 string `json:"Key2"`
-	Key3 string `json:"Key3"`
 }
 
 var mountebankUrl = "http://localhost:8181/transform"
 
 func main() {
 	router := gin.Default()
-	router.POST("/transform", processCar)
-
-	err := router.Run("localhost:8080")
-	if err != nil {
-		log.Printf("Run failed: %s", err)
-		return
-	}
+	router.POST("/transform", transform)
+	router.Run("localhost:8080")
 }
 
-// processCar updates received car's title and sends it to Mountebank
-func processCar(receivedRequest *gin.Context) {
+// 'transform' function updates received payload and sends it further
+func transform(receivedRequest *gin.Context) {
+	var payload payload
+	receivedRequest.BindJSON(&payload)
 
-	var receivedPayload payload                                        // Declaring a new Car variable.
-	if err := receivedRequest.BindJSON(&receivedPayload); err != nil { // Bind the request body to newCar variable.
-		receivedRequest.IndentedJSON(http.StatusBadRequest, // Return 400 Status Code,
-			gin.H{"message": "Failed to create a car"}) // and error message if binding has failed.
-		return
-	}
-	//Transforming the payload
-	receivedPayload.Key1 = "transformed key1 value"
-	receivedPayload.Key2 = "transformed key2 value"
-	receivedPayload.Key3 = "transformed key3 value"
+	// Transforming the payload
+	payload.Key1 = "transformed value 1"
+	payload.Key2 = "transformed value 2"
 
-	receivedRequest.IndentedJSON(http.StatusCreated, receivedPayload)
-	transformedPayload, _ := json.Marshal(receivedPayload)
+	// Sending the response with transformed payload
+	receivedRequest.IndentedJSON(http.StatusCreated, payload)
 
-	request, err := http.NewRequest("POST", mountebankUrl, bytes.NewBuffer(transformedPayload))
-	if err != nil {
-		log.Printf("Request creation failed: %s", err)
-		return
-	}
+	// Converting transformed payload to JSON
+	jsonPayload, _ := json.Marshal(payload)
+
+	// Preparing a request to send it further to external service
+	request, _ := http.NewRequest("POST", mountebankUrl, bytes.NewBuffer(jsonPayload))
 	request.Header.Add("Testing-Id", receivedRequest.GetHeader("Testing-Id"))
 
-	//Sending request to Mountebank
+	// Sending prepared request
 	httpClient := &http.Client{}
-	_, err = httpClient.Do(request)
-	if err != nil {
-		log.Printf("Failed to send request: %s", err)
-		return
-	}
+	httpClient.Do(request)
 }
