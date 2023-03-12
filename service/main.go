@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,13 +20,19 @@ var mountebankUrl = "http://localhost:8181/transform"
 func main() {
 	router := gin.Default()
 	router.POST("/transform", transform)
-	router.Run("localhost:8080")
+	err := router.Run("localhost:8080")
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 }
 
 // 'transform' function updates received payload and sends it further
 func transform(receivedRequest *gin.Context) {
 	var payload payload
-	receivedRequest.BindJSON(&payload)
+	err := receivedRequest.BindJSON(&payload)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	// Transforming the payload
 	payload.Key1 = "transformed value 1"
@@ -35,13 +42,22 @@ func transform(receivedRequest *gin.Context) {
 	receivedRequest.IndentedJSON(http.StatusCreated, payload)
 
 	// Converting transformed payload to JSON
-	jsonPayload, _ := json.Marshal(payload)
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 
 	// Preparing a request to send it further to external service
-	request, _ := http.NewRequest("POST", mountebankUrl, bytes.NewBuffer(jsonPayload))
+	request, err := http.NewRequest("POST", mountebankUrl, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 	request.Header.Add("Testing-Id", receivedRequest.GetHeader("Testing-Id"))
 
 	// Sending prepared request
 	httpClient := &http.Client{}
-	httpClient.Do(request)
+	_, err = httpClient.Do(request)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
 }

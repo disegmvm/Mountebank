@@ -1,7 +1,12 @@
-install Mountebank:
+Install Mountebank:
 npm install -g mountebank
 
-run mb from /api-server/MountebankApi/mountebank
-run go run main.go from /api-server/MountebankApi/service
-run go run test.go from api-server/MountebankApi/service
-CHECK HERE: http://localhost:2525/imposters/8181
+Launch Mountebank:
+mb
+
+In /service directory:
+- launch 'transform' service: go run main.go
+- run Mountebank test: go test
+
+Your Mountebank requests will be stored here:
+http://localhost:2525/imposters/8181

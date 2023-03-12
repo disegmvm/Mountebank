@@ -12,37 +12,53 @@ import (
 
 var (
 	ctx       = context.Background()
-	testingID = "12345"
+	testingID = "17"
 )
 
 func TestTransform(t *testing.T) {
 
 	// Initializing Mountebank's components
-	mbank, _ := mountebank.NewMountebank()
-	_ = mbank.CreateImposter(ctx, mountebank.Imposter)
-	_ = mbank.AddStub(ctx, mountebank.Imposter.Port, stubs.TransformStub)
+	mbank, err := mountebank.NewMountebank()
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+	err = mbank.CreateImposter(ctx, mountebank.Imposter)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+	err = mbank.AddStub(ctx, mountebank.Imposter.Port, stubs.TransformStub)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
 
 	// Creating a testing data
 	payload1 := "{\"Key1\": \"initial value 1\", \"Key2\": \"initial value 2\"}"
-	log.Print("Payload sent to local service:")
-	log.Print(payload1)
+	log.Printf("Payload sent to local service:\n%s", payload1)
 
 	// Preparing a request to send it to 'transform' service
-	request, _ := http.NewRequest("POST", "http://localhost:8080/transform", bytes.NewBuffer([]byte(payload1)))
+	request, err := http.NewRequest("POST", "http://localhost:8080/transform", bytes.NewBuffer([]byte(payload1)))
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
 	request.Header.Add("Testing-Id", testingID)
 
 	// Sending prepared request
 	httpClient := &http.Client{}
-	httpClient.Do(request)
+	_, err = httpClient.Do(request)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
 
 	// Retrieving all requests present in Mountebank
-	reqs, _ := mbank.GetRequestsFromMountebank(ctx, 8181)
+	reqs, err := mbank.GetRequestsFromMountebank(ctx, 8181)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
 
 	// Looping through Mountebank requests to find the one with knows Testing ID
 	for _, req := range reqs {
 		if req.Headers.Get("Testing-Id") == testingID {
-			log.Print("Request from Mountebank:")
-			log.Print(req.Body.(string))
+			log.Printf("Request from Mountebank:\n%s", req.Body.(string))
 		}
 	}
 }
